@@ -28,8 +28,6 @@ dir_path_st2 = r"(C:\Users\Jaxon\OneDrive\Computer_Files_Surface\School_Files\UT
 dir_path_st3 = r"(C:\Users\Jaxon\OneDrive\Computer_Files_Surface\School_Files\UT_Files\Fall_2026_Files\SDS 336\Project\ROP-VL\Image\Stage 3 ROP)"
 dir_path_st4 = r"(C:\Users\Jaxon\OneDrive\Computer_Files_Surface\School_Files\UT_Files\Fall_2026_Files\SDS 336\Project\ROP-VL\Image\Stage 4 ROP)"
 dir_path_st5 = r"(C:\Users\Jaxon\OneDrive\Computer_Files_Surface\School_Files\UT_Files\Fall_2026_Files\SDS 336\Project\ROP-VL\Image\Stage 5 ROP)"
-dir_path_A_ROP = r"(C:\Users\Jaxon\OneDrive\Computer_Files_Surface\School_Files\UT_Files\Fall_2026_Files\SDS 336\Project\ROP-VL\Image\A-ROP)"
-dir_path_LT_A_ROP = r"(C:\Users\Jaxon\OneDrive\Computer_Files_Surface\School_Files\UT_Files\Fall_2026_Files\SDS 336\Project\ROP-VL\Image\Laser-treated ROP)"
 
 # listing the image file paths
 norm <- as.data.frame(list.files(dir_path_norm, pattern = "\\.jpg$", full.names = TRUE))
@@ -50,13 +48,7 @@ colnames(st4)[1] <- "path"
 st5 <- as.data.frame(list.files(dir_path_st5, pattern = "\\.jpg$", full.names = TRUE))
 colnames(st5)[1] <- "path"
 
-A_ROP <- as.data.frame(list.files(dir_path_A_ROP, pattern = "\\.jpg$", full.names = TRUE))
-colnames(A_ROP)[1] <- "path"
-
-LT_A_ROP <- as.data.frame(list.files(dir_path_LT_A_ROP, pattern = "\\.jpg$", full.names = TRUE))
-colnames(LT_A_ROP)[1] <- "path"
-
-imgs <- rbind(norm, st1, st2, st3, st4, st5, A_ROP, LT_A_ROP)
+imgs <- rbind(norm, st1, st2, st3, st4, st5)
 ```
 
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
@@ -64,194 +56,54 @@ image_info_path = r"(C:\Users\Jaxon\OneDrive\Computer_Files_Surface\School_Files
 info <- read_excel(image_info_path)
 
 imgs$image <- basename(imgs$path)
-imgs <- merge(imgs, info, by = "image", all = TRUE)
+imgs <- merge(imgs, info, by = "image")
 
 colnames(imgs)[colnames(imgs) == "categories"] <- "label"
 ```
 
-# Data sources
 
-- [Description](https://www.nature.com/articles/s41597-026-07901-0#additional-information)
-- [Download](https://figshare.com/articles/dataset/ROP-VL_An_Open_Dataset_Integrating_Fundus_Photograph_and_Clinical_Knowledge_for_Retinopathy_of_Prematurity/30143461/1?file=58329352)
 
-# What is ROP?
 
-Retinopathy of prematurity is an eye disease affecting premature infants  
-where abnormal blood vessels grow in the retina,  
-potentially leading to retinal detachment and vision loss.  
-
-# Normal
-
-healthy; no findings; no lesion signs;  
-no retinopathy; incomplete vascularization.  
 
 ```{r, echo=FALSE}
-par(mfrow=c(2,4),
-    mar=c(0,0,0,0),
-    oma=c(0,0,0,0))
-norm_imgs <- lapply(imgs[imgs$label=="normal",][1:8,2], load.image)
-for (im in norm_imgs) plot(im, axes=FALSE)
-```
+img_features <- function(path, thr = 0.05) {
+  print("action")
+  nms    <- c("avg_R", "avg_G", "avg_B", "bright_prop")
+  na_out <- setNames(rep(NA_real_, length(nms)), nms)
+  if (is.na(path)) return(na_out)
 
-# Stage 1
+  img    <- resize(load.image(path))
+  retina <- grayscale(img) > thr            # field of view (non-black)
+  if (!any(retina)) return(na_out)
 
-a thin white line at the vascular-avascular junction  
-with possible abnormal vessel branching.  
+  rm <- R(img)[retina]
+  gm <- G(img)[retina]
+  bm <- B(img)[retina]
 
-```{r, echo=FALSE}
-par(mfrow=c(2,4),
-    mar=c(0,0,0,0),
-    oma=c(0,0,0,0))
-st1_imgs <- lapply(imgs[imgs$label=="Stage 1 ROP",][1:8,2], load.image)
-for (im in st1_imgs) plot(im, axes=FALSE)
-```
-
-# Stage 2
-
-ridge with width and height that evolves from the demarcation line;  
-the ridge may vary in height; the ridge's color ranges from white to pink;  
-small isolated tufts of neovascular tissue lying on the surface of the retina;  
-ridge is raised and thicker than stage 1 ROP.  
-
-```{r, echo=FALSE}
-par(mfrow=c(2,4),
-    mar=c(0,0,0,0),
-    oma=c(0,0,0,0))
-st2_imgs <- lapply(imgs[imgs$label=="Stage 2 ROP",][1:8,2], load.image)
-for (im in st2_imgs) plot(im, axes=FALSE)
-```
-
-# Stage 3
-
-extraretinal neovascular proliferation extends from the ridge into the vitreous;  
-is continuous with the posterior aspect of the ridge, causing a ragged appearance as  
-proliferation becomes more extensive; Seemingly flat-appearing extraretinal neovascularization  
-can occur in eyes with zone 1 or posterior zone 2 disease,in the absence  
-of an obvious ridge or demarcation line.  
-
-```{r, echo=FALSE}
-par(mfrow=c(2,4),
-    mar=c(0,0,0,0),
-    oma=c(0,0,0,0))
-st3_imgs <- lapply(imgs[imgs$label=="Stage 3 ROP",][1:8,2], load.image)
-for (im in st3_imgs) plot(im, axes=FALSE)
-```
-
-# Stage 4
-
-partial retinal detachment, either spares  or involves the fovea;  
-traction on extraretinal neovascularization leads to retinal elevation;  
-tractional retinal detachment in the area of the peripheral ridge;  
-detachment involving the macula; detachment with associated subretinal  
-hemorrhage and lipid exudation into the macula; detachment of  
-vascularized retina into a volcano shaped configuration.  
-
-```{r, echo=FALSE}
-par(mfrow=c(2,4),
-    mar=c(0,0,0,0),
-    oma=c(0,0,0,0))
-st4_imgs <- lapply(imgs[imgs$label=="Stage 4 ROP",][1:8,2], load.image)
-for (im in st4_imgs) plot(im, axes=FALSE)
-```
-
-# Stage 5
-
-total retinal detachment; open-funnel detachment, the optic disc is visible by ophthalmoscopy;  
-closed-funnel detachment, the optic disc is not visible secondary;  
-the optic disc is not visible secondary to retrolental fibrovascular tissue.  
-
-```{r, echo=FALSE}
-par(mfrow=c(2,4),
-    mar=c(0,0,0,0),
-    oma=c(0,0,0,0))
-st5_imgs <- lapply(imgs[imgs$label=="Stage 5 ROP",][1:8,2], load.image)
-for (im in st5_imgs) plot(im, axes=FALSE)
-```
-
-# A-ROP (aggressive retinopathy of prematurity)
-
-severe vasoconstriction; capillary nonperfusion; nonphysiologic dilated vascular loops;  
-arteriovenous shunts; plus disease in zone 1; dilated vascular loops; diffuse flat  
-extraretinal neovascularization most prominent superotemporally, and severe plus disease;  
-flat extraretinal neovascularization with fibrosis, and early contraction superiorly;  
-intraretinal and vitreous hemorrhage superotemporally; ill-defined junction between  
-vascular and avascular retina in zone 1.  
-
-```{r, echo=FALSE}
-par(mfrow=c(2,4),
-    mar=c(0,0,0,0),
-    oma=c(0,0,0,0))
-A_ROP_imgs <- lapply(imgs[imgs$label=="A-ROP",][1:8,2], load.image)
-for (im in A_ROP_imgs) plot(im, axes=FALSE)
-```
-
-# Laser-treated ROP
-
-laser scar; Laser spots look like small white dots on the retina,  
-these are tiny burn marks; clear white retinal laser spots.  
-
-```{r, echo=FALSE}
-par(mfrow=c(2,4),
-    mar=c(0,0,0,0),
-    oma=c(0,0,0,0))
-LT_A_ROP_imgs <- lapply(imgs[imgs$label=="Laser-treated ROP",][1:8,2], load.image)
-for (im in LT_A_ROP_imgs) plot(im, axes=FALSE)
-```
-
-```{r, echo=FALSE}
-counts <- imgs %>%
-  count(label, name="Count")
-
-ggplot(counts, aes(x=label, y=Count, fill=label)) +
-geom_bar(stat="identity") + 
-theme_bw() + 
-labs(title="Number of images with each label", x="") +
-theme(axis.text.x=element_blank())
-```
-
-```{r, echo=FALSE}
-avg_color_single <- function(im) {
-  # 1. Split the image into its R, G, and B channels
-  R <- im[,,,1]
-  G <- im[,,,2]
-  B <- im[,,,3]
-  
-  # 2. Find pixels that are NOT pure black (where not all channels are 0)
-  not_black_mask <- !(R == 0 & G == 0 & B == 0)
-  
-  # 3. Extract only the valid pixels for each channel
-  valid_R <- R[not_black_mask]
-  valid_G <- G[not_black_mask]
-  valid_B <- B[not_black_mask]
-  
-  # 4. Calculate the mean of the non-black pixels
-  mean_R <- mean(valid_R)
-  mean_G <- mean(valid_G)
-  mean_B <- mean(valid_B)
-  
-  return(c(Red = mean_R, Green = mean_G, Blue = mean_B))
+  c(avg_R       = mean(rm),
+    avg_G       = mean(gm),
+    avg_B       = mean(bm),
+    bright_prop = mean(gm > mean(gm) + 1.5 * sd(gm)))
 }
-
-avg_color_from_imgs <- function(imgs) {
-  avg_color_ls <- lapply(imgs, avg_color_single)
-  avg_color_df <- do.call(rbind, avg_color_ls)
-  
-  avg_color <- c(mean(norm_avg_color_df[,"Red"]),
-                mean(norm_avg_color_df[,"Green"]),
-                mean(norm_avg_color_df[,"Blue"]))
-  
-  return(avg_color)
-}
-
 ```
 
 ```{r, echo=FALSE}
-avg_color_from_imgs(norm_imgs)
-avg_color_from_imgs(st1_imgs)
-avg_color_from_imgs(st2_imgs)
-avg_color_from_imgs(st3_imgs)
-avg_color_from_imgs(st4_imgs)
-avg_color_from_imgs(st5_imgs)
-avg_color_from_imgs(A_ROP_imgs)
-avg_color_from_imgs(LT_A_ROP_imgs)
+feat_mat <- t(vapply(imgs$path, img_features, numeric(4), USE.NAMES = FALSE))
+imgs <- cbind(imgs, feat_mat)
+colnames(imgs)[10] = "avg_R"
+colnames(imgs)[11] = "avg_G"
+colnames(imgs)[12] = "avg_B"
+colnames(imgs)[13] = "brightness_prop"
+```
+
+
+
+
+
+```{r, echo=FALSE}
+write.csv(imgs, "imgs.csv", row.names = FALSE)
+```
+
+```{r, echo-FALSE}
+imgs <- read.csv(r"(C:\Users\Jaxon\OneDrive\Computer_Files_Surface\School_Files\UT_Files\Fall_2026_Files\SDS 336\Project\imgs.csv)")
 ```

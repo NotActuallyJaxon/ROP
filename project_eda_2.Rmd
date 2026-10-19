@@ -1,0 +1,345 @@
+---
+title: "project_eda_2"
+author: "Jaxon Lara"
+date: "2026-10-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=20, fig.height=10)
+```
+
+```{r, echo=FALSE, warning=FALSE}
+library(ggplot2)
+library(ggthemes)
+library(imager)
+library(readxl)
+library(tidyverse)
+
+imgs <- read.csv(r"(C:\Users\Jaxon\OneDrive\Computer_Files_Surface\School_Files\UT_Files\Fall_2026_Files\SDS 336\Project\imgs.csv)")
+```
+
+# Data sources
+
+- [Description](https://www.nature.com/articles/s41597-026-07901-0#additional-information)
+- [Download](https://figshare.com/articles/dataset/ROP-VL_An_Open_Dataset_Integrating_Fundus_Photograph_and_Clinical_Knowledge_for_Retinopathy_of_Prematurity/30143461/1?file=58329352)
+
+```{r, echo=FALSE}
+counts <- imgs %>%
+  count(label, name="Count")
+
+ggplot(counts, aes(x=label, y=Count, fill=label)) +
+geom_bar(stat="identity") + 
+theme_bw() + 
+labs(title="Number of images with each label", x="") +
+theme(axis.text.x=element_blank())
+```
+
+```{r}
+stage_levels <- c("normal", "Stage 1 ROP", "Stage 2 ROP", "Stage 3 ROP",
+                  "Stage 4 ROP", "Stage 5 ROP")
+imgs$label <- factor(imgs$label, levels = stage_levels)
+```
+
+```{r}
+ggplot(imgs, aes(x = label, y = avg_R)) +
+  geom_violin(fill = "red", alpha = 0.15, color = NA, scale = "width") +
+  geom_boxplot(width = 0.15, outlier.shape = NA, fill = "white") +
+  geom_jitter(width = 0.1, alpha = 0.15, size = 0.7, color = "red") +
+  coord_cartesian(ylim = c(0, 1)) +
+  labs(title = "Average Red channel", x = "", y = "Average red intensity (0-1 scale)",
+       caption = "Pixel intensities scaled to 0-1 (original 0-255 / 255); pure-black pixels excluded") +
+  theme_bw()
+
+ggplot(imgs, aes(x = label, y = avg_G)) +
+  geom_violin(fill = "green", alpha = 0.15, color = NA, scale = "width") +
+  geom_boxplot(width = 0.15, outlier.shape = NA, fill = "white") +
+  geom_jitter(width = 0.1, alpha = 0.15, size = 0.7, color = "green") +
+  coord_cartesian(ylim = c(0, 1)) +
+  labs(title = "Average Green channel", x = "", y = "Average green intensity (0-1 scale)",
+       caption = "Pixel intensities scaled to 0-1 (original 0-255 / 255); pure-black pixels excluded") +
+  theme_bw()
+
+ggplot(imgs, aes(x = label, y = avg_B)) +
+  geom_violin(fill = "blue", alpha = 0.15, color = NA, scale = "width") +
+  geom_boxplot(width = 0.15, outlier.shape = NA, fill = "white") +
+  geom_jitter(width = 0.1, alpha = 0.15, size = 0.7, color = "blue") +
+  coord_cartesian(ylim = c(0, 1)) +
+  labs(title = "Average Blue channel", x = "", y = "Average blue intensity (0-1 scale)",
+       caption = "Pixel intensities scaled to 0-1 (original 0-255 / 255); pure-black pixels excluded") +
+  theme_bw()
+```
+
+# g_sd
+
+```{r}
+ggplot(imgs, aes(x = label, y = g_sd)) +
+  geom_violin(fill = "grey20", alpha = 0.15, color = NA, scale = "width") +
+  geom_boxplot(width = 0.15, outlier.shape = NA, fill = "white") +
+  geom_jitter(width = 0.1, alpha = 0.15, size = 0.7, color = "grey20") +
+  theme_bw()
+```
+
+# fov_frac
+
+```{r}
+ggplot(imgs, aes(x = label, y = fov_frac)) +
+  geom_violin(fill = "grey20", alpha = 0.15, color = NA, scale = "width") +
+  geom_boxplot(width = 0.15, outlier.shape = NA, fill = "white") +
+  geom_jitter(width = 0.1, alpha = 0.15, size = 0.7, color = "grey20") +
+  theme_bw()
+```
+
+# hi_prop
+
+```{r}
+ggplot(imgs, aes(x = label, y = hi_prop)) +
+  geom_violin(fill = "grey20", alpha = 0.15, color = NA, scale = "width") +
+  geom_boxplot(width = 0.15, outlier.shape = NA, fill = "white") +
+  geom_jitter(width = 0.1, alpha = 0.15, size = 0.7, color = "grey20") +
+  theme_bw()
+```
+
+# edge mean
+
+```{r}
+ggplot(imgs, aes(x = label, y = edge_mean)) +
+  geom_violin(fill = "grey20", alpha = 0.15, color = NA, scale = "width") +
+  geom_boxplot(width = 0.15, outlier.shape = NA, fill = "white") +
+  geom_jitter(width = 0.1, alpha = 0.15, size = 0.7, color = "grey20") +
+  theme_bw()
+```
+
+# edge_p95
+
+```{r}
+ggplot(imgs, aes(x = label, y = edge_p95)) +
+  geom_violin(fill = "grey20", alpha = 0.15, color = NA, scale = "width") +
+  geom_boxplot(width = 0.15, outlier.shape = NA, fill = "white") +
+  geom_jitter(width = 0.1, alpha = 0.15, size = 0.7, color = "grey20") +
+  theme_bw()
+```
+
+```{r, echo=FALSE}
+# Only showing left eyes because we can assume left and right are
+# independent and have no bearing on ROP development.
+# In order to remove simialrly looking eyes.
+imgs <- imgs[grepl("_L_", imgs$image), ]
+rownames(imgs) <- NULL
+```
+
+```{r}
+# Defining stretch function for imgs
+stretch <- function(x, p = c(0.01, 0.99)) {
+  q <- quantile(x[x > 0], p)                       # ignore the black border
+  as.cimg(pmin(pmax((x - q[1]) / (q[2] - q[1]), 0), 1), dim = dim(x))
+}
+```
+
+# What is ROP?
+
+Retinopathy of prematurity is an eye disease affecting premature infants  
+where abnormal blood vessels grow in the retina,  
+potentially leading to retinal detachment and vision loss.  
+
+# Normal
+
+healthy; no findings; no lesion signs;  
+no retinopathy; incomplete vascularization.  
+
+```{r, echo=FALSE}
+img <- load.image(imgs$path[imgs$label == "normal"][1])
+
+green    <- G(img)                                  # red-free: green channel only
+fluor    <- 1 - stretch(green)                      # vessels dark in green -> bright
+
+par(mfrow = c(1, 2), mar = c(0, 0, 1, 0), oma = c(0, 0, 0, 0))
+plot(img,   axes = FALSE, main = "Standard color")
+plot(stretch(green), axes = FALSE, main = "Red-free (green channel)")
+```
+
+# Stage 1
+
+a thin white line at the vascular-avascular junction  
+with possible abnormal vessel branching.  
+
+```{r, echo=FALSE}
+img <- load.image(imgs$path[imgs$label == "Stage 1 ROP"][3])
+
+green    <- G(img)                                  # red-free: green channel only
+fluor    <- 1 - stretch(green)                      # vessels dark in green -> bright
+
+par(mfrow = c(1, 2), mar = c(0, 0, 1, 0), oma = c(0, 0, 0, 0))
+plot(img,   axes = FALSE, main = "Standard color")
+plot(stretch(green), axes = FALSE, main = "Red-free (green channel)")
+```
+
+# Stage 2
+
+ridge with width and height that evolves from the demarcation line;  
+the ridge may vary in height; the ridge's color ranges from white to pink;  
+small isolated tufts of neovascular tissue lying on the surface of the retina;  
+ridge is raised and thicker than stage 1 ROP.  
+
+```{r, echo=FALSE}
+img <- load.image(imgs$path[imgs$label == "Stage 2 ROP"][5])
+
+green    <- G(img)                                  # red-free: green channel only
+fluor    <- 1 - stretch(green)                      # vessels dark in green -> bright
+
+par(mfrow = c(1, 2), mar = c(0, 0, 1, 0), oma = c(0, 0, 0, 0))
+plot(img,   axes = FALSE, main = "Standard color")
+plot(stretch(green), axes = FALSE, main = "Red-free (green channel)")
+```
+
+# Stage 3
+
+extraretinal neovascular proliferation extends from the ridge into the vitreous;  
+is continuous with the posterior aspect of the ridge, causing a ragged appearance as  
+proliferation becomes more extensive; Seemingly flat-appearing extraretinal neovascularization  
+can occur in eyes with zone 1 or posterior zone 2 disease,in the absence  
+of an obvious ridge or demarcation line.  
+
+```{r, echo=FALSE}
+img <- load.image(imgs$path[imgs$label == "Stage 3 ROP"][4])
+
+green    <- G(img)                                  # red-free: green channel only
+fluor    <- 1 - stretch(green)                      # vessels dark in green -> bright
+
+par(mfrow = c(1, 2), mar = c(0, 0, 1, 0), oma = c(0, 0, 0, 0))
+plot(img,   axes = FALSE, main = "Standard color")
+plot(stretch(green), axes = FALSE, main = "Red-free (green channel)")
+```
+
+# Stage 4
+
+partial retinal detachment, either spares  or involves the fovea;  
+traction on extraretinal neovascularization leads to retinal elevation;  
+tractional retinal detachment in the area of the peripheral ridge;  
+detachment involving the macula; detachment with associated subretinal  
+hemorrhage and lipid exudation into the macula; detachment of  
+vascularized retina into a volcano shaped configuration.  
+
+```{r, echo=FALSE}
+img <- load.image(imgs$path[imgs$label == "Stage 4 ROP"][5])
+
+green    <- G(img)                                  # red-free: green channel only
+fluor    <- 1 - stretch(green)                      # vessels dark in green -> bright
+
+par(mfrow = c(1, 2), mar = c(0, 0, 1, 0), oma = c(0, 0, 0, 0))
+plot(img,   axes = FALSE, main = "Standard color")
+plot(stretch(green), axes = FALSE, main = "Red-free (green channel)")
+```
+
+# Stage 5
+
+total retinal detachment; open-funnel detachment, the optic disc is visible by ophthalmoscopy;  
+closed-funnel detachment, the optic disc is not visible secondary;  
+the optic disc is not visible secondary to retrolental fibrovascular tissue.  
+
+```{r, echo=FALSE}
+img <- load.image(imgs$path[imgs$label == "Stage 5 ROP"][3])
+
+green    <- G(img)                                  # red-free: green channel only
+fluor    <- 1 - stretch(green)                      # vessels dark in green -> bright
+
+par(mfrow = c(1, 2), mar = c(0, 0, 1, 0), oma = c(0, 0, 0, 0))
+plot(img,   axes = FALSE, main = "Standard color")
+plot(stretch(green), axes = FALSE, main = "Red-free (green channel)")
+```
+
+```{r, echo=FALSE}
+show_bright <- function(path, thr = 0.05, k = 2) {
+  img  <- resize(load.image(path))
+  g    <- G(img)
+  mask <- grayscale(img) > thr
+  gm   <- g[mask]
+  cut  <- mean(gm) + k * sd(gm)      # same rule as bright_prop
+  bright <- mask & (g > cut)
+
+  out <- img                          # copy; original is unchanged
+  R(out)[bright] <- 1
+  G(out)[bright] <- 0
+  B(out)[bright] <- 0
+
+  par(mfrow = c(1, 2), mar = c(0, 0, 1, 0))
+  plot(img, axes = FALSE, main = "Original")
+  plot(out, axes = FALSE,
+       main = sprintf("Bright pixels: %.2f%%", 100 * mean(gm > cut)))
+  invisible(out)
+}
+```
+
+```{r}
+for (i in c(0,1,1.25,1.5,1.75,2)){
+  show_bright(imgs$path[imgs$label == "Stage 5 ROP"][3], k=i)
+}#1.5, 0, 1.75, 0, 1.5
+```
+
+```{r}
+show_bright(imgs$path[imgs$label == "Stage 1 ROP"][3], k=1.5) 
+show_bright(imgs$path[imgs$label == "Stage 2 ROP"][5], k=1.5) 
+show_bright(imgs$path[imgs$label == "Stage 3 ROP"][4], k=1.5) 
+show_bright(imgs$path[imgs$label == "Stage 4 ROP"][5], k=1.5) 
+show_bright(imgs$path[imgs$label == "Stage 5 ROP"][3], k=1.5) 
+```
+
+```{r}
+show_bright(imgs$path[imgs$label == "normal"][11], k=1.5) 
+show_bright(imgs$path[imgs$label == "Stage 1 ROP"][11], k=1.5) 
+show_bright(imgs$path[imgs$label == "Stage 2 ROP"][11], k=1.5) 
+show_bright(imgs$path[imgs$label == "Stage 3 ROP"][11], k=1.5) 
+show_bright(imgs$path[imgs$label == "Stage 4 ROP"][11], k=1.5) 
+show_bright(imgs$path[imgs$label == "Stage 5 ROP"][11], k=1.5) 
+```
+
+```{r}
+LINE_G   <- 0.80
+VESSEL_G <- 0.25
+G_TOL    <- 0.1
+
+show_stretch_match <- function(path, line_val = LINE_G, vessel_val = VESSEL_G,
+                               tol = G_TOL, thr = 0.05) {
+  img    <- resize(load.image(path))
+  retina <- as.array(grayscale(img) > thr)[, , 1, 1]
+  gs <- as.array(stretch(G(img)))[, , 1, 1]   # stretched green, 0-1
+
+  line_hit   <- retina & (abs(gs - line_val)   < tol)
+  vessel_hit <- retina & (abs(gs - vessel_val) < tol)
+
+  arr <- array(gs, dim = c(dim(gs), 1, 3))   # grayscale base in all 3 channels
+
+  arr[, , 1, 1][line_hit]   <- 1; arr[, , 1, 2][line_hit]   <- 0; arr[, , 1, 3][line_hit]   <- 0  # red
+  arr[, , 1, 1][vessel_hit] <- 0; arr[, , 1, 2][vessel_hit] <- 1; arr[, , 1, 3][vessel_hit] <- 1  # cyan
+
+  out <- as.cimg(arr)
+
+  par(mfrow = c(1, 2), mar = c(0, 0, 1, 0))
+  plot(img, axes = FALSE, main = "Original")
+  plot(out, axes = FALSE, rescale = FALSE,
+       main = sprintf("Line (red): %.2f%% | Vessel (cyan): %.2f%%",
+                      100 * mean(line_hit[retina]),
+                      100 * mean(vessel_hit[retina])))
+  invisible(out)
+}
+```
+
+```{r}
+show_stretch_match(imgs$path[imgs$label == "normal"][1])
+show_stretch_match(imgs$path[imgs$label == "normal"][2])
+show_stretch_match(imgs$path[imgs$label == "normal"][3])
+show_stretch_match(imgs$path[imgs$label == "normal"][4])
+```
+
+```{r}
+show_stretch_match(imgs$path[imgs$label == "Stage 1 ROP"][1])
+show_stretch_match(imgs$path[imgs$label == "Stage 1 ROP"][2])
+show_stretch_match(imgs$path[imgs$label == "Stage 1 ROP"][3])
+show_stretch_match(imgs$path[imgs$label == "Stage 1 ROP"][4])
+```
+
+```{r}
+img <- resize(load.image(imgs$path[1]), 512, 512)
+range(stretch(G(img)))   # c(0, 1) or c(0, 255)?
+```
